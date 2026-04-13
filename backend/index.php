@@ -1,5 +1,4 @@
 <?php
-// 1. Include the database connection
 require_once 'config.php';
 
 // 2. Test if $pdo exists from the config file
