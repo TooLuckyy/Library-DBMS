@@ -19,7 +19,7 @@ try {
     }
 
     // 2. Insert Loan
-    $loanSql = "INSERT INTO loan (bookCopyId, studentId, returnDate)
+    $loanSql = "INSERT INTO loan (bookCopyId, studentId, dueDate)
                 VALUES (:copyId, :studentId, :dueDate)";
     $loanStmt = $pdo->prepare($loanSql);
     $loanStmt->execute([
