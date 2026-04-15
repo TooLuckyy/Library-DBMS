@@ -2,8 +2,8 @@
 
 $host    = 'localhost';
 $db      = 'library';
-$user    = 'root'; deafualt or yours
-$pass    = ''; deafualt or yours
+$user    = 'root'; //deafualt or yours
+$pass    = ''; //deafualt or yours
 
 $dsn = "mysql:host=$host;dbname=$db";
 
