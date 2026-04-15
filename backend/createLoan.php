@@ -1,5 +1,6 @@
 <?php
 require_once 'config.php';
+require_once 'databaseHelper.php';
 
 $bookCopyId = 1;
 $studentId  = 101;
@@ -8,17 +9,13 @@ $dueDate    = date('Y-m-d', strtotime('+14 days'));
 try {
     $pdo->beginTransaction();
 
-    // 1. Check availability
-    $checkSql = "SELECT status FROM bookCopy WHERE id = ? FOR UPDATE";
-    $stmt = $pdo->prepare($checkSql);
-    $stmt->execute([$bookCopyId]); 
-    $copy = $stmt->fetch();
-
-    if (!$copy || $copy['status'] !== 'available') {
+    //Check availability
+    $status = getAvalibility($pdo, $copyId);
+    if ($status !== 'available') {
         throw new Exception("Book not available for loan.");
     }
 
-    // 2. Insert Loan
+    //Insert Loan
     $loanSql = "INSERT INTO loan (bookCopyId, studentId, dueDate)
                 VALUES (:copyId, :studentId, :dueDate)";
     $loanStmt = $pdo->prepare($loanSql);
@@ -28,8 +25,8 @@ try {
         ':dueDate'   => $dueDate
     ]);
 
-    // 3. Update status
-    $updateSql = "UPDATE bookCopy SET status = 'checked_out' WHERE id = ?";
+    //Update status
+    $updateSql = "UPDATE bookcopy SET status = 'checked_out' WHERE id = ?";
     $updateStmt = $pdo->prepare($updateSql); 
     $updateStmt->execute([$bookCopyId]);
 
