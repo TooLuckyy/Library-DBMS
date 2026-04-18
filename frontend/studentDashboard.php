@@ -1,8 +1,7 @@
 <?php
 session_start();
 require_once "../backend/config/config.php";
-require_once "../backend/database_helper.php";
-
+require_once "../backend/databaseHelper.php";
 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     header("Location: login.php");

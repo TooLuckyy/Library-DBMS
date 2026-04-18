@@ -1,15 +1,33 @@
 <?php
-require_once "config/config.php";
+require_once "../config/config.php";
 
-$isbn = '619';
+$isbn = $_GET['isbn'] ?? null;
+
+if (!$isbn) {
+    die("Error: No ISBN provided.");
+}
 
 try {
-    $deleteSql = "DELETE FROM book WHERE isbn = ?";
-    $deleteSql = $pdo->prepare($deleteSql);
-    $deleteSql->execute([$isbn]);
+    $pdo->beginTransaction();
 
-    echo "Successfully removed " . $title;
+    // 1. Find the Book ID
+    $stmt = $pdo->prepare("SELECT id FROM book WHERE isbn = ?");
+    $stmt->execute([$isbn]);
+    $book = $stmt->fetch();
+
+    if ($book) {
+        // 2. Remove all copies
+        $pdo->prepare("DELETE FROM bookcopy WHERE bookID = ?")->execute([$book['id']]);
+        
+        // 3. Remove the main book
+        $pdo->prepare("DELETE FROM book WHERE isbn = ?")->execute([$isbn]);
+    }
+
+    $pdo->commit();
+    header("Location: ../../frontend/adminDashboard.php?msg=Book+Deleted");
+    exit;
 
 } catch (\PDOException $e) {
-    echo "failed to remove book." . $e->getMessage();
+    $pdo->rollBack();
+    echo "Failed to remove book: " . $e->getMessage();
 }

@@ -1,10 +1,13 @@
 <?php
+session_start();
 require_once "config/config.php";
 
-// 2. Test if $pdo exists from the config file
-if (isset($pdo)) {
-    echo "<h1>Library API</h1>";
-    echo " Database connection is live.";
+if (!isset($_SESSION['user_id'])) {
+    // If not logged in, send to login
+    header("Location: frontend/login.php");
 } else {
-    echo " Connection failed.";
+    // If logged in, send to their specific dashboard
+    $path = ($_SESSION['role'] === 'librarian') ? "frontend/adminDashboard.php" : "frontend/studentDashboard.php";
+    header("Location: $path");
 }
+exit;

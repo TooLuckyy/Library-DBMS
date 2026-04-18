@@ -1,39 +1,33 @@
 <?php
-require_once "config/config.php";
+require_once "../config/config.php"; 
 
-$title = "What will You do";
-$author = "Miguel Osen";
-$isbn = "619";
-$genre = "Thriller";
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $title = $_POST['title'];
+    $author = $_POST['author'];
+    $isbn = $_POST['isbn'];
+    $genre = $_POST['genre'];
 
-try {
-    //check if book already exist
-    $checkSql = "SELECT isbn FROM book WHERE isbn = ?";
-    $checkStmt = $pdo->prepare($checkSql);
-    $checkStmt->execute([$isbn]);
-
-    $result = $checkStmt->fetch(PDO::FETCH_ASSOC);
-
-    if($result) {
-        throw new Exception("Book already exist.");
-    }
-
-    //adds book to book table
-    $insertSql = "INSERT INTO book (title, author, isbn, genre) 
-                  VALUES(:title, :author, :isbn, :genre)";
-    $insertStmt = $pdo->prepare($insertSql);
-    $insertStmt->execute([
-        'title' => $title, 
-        'author' => $author, 
-        'isbn' => $isbn, 
-        'genre' => $genre]);
-
-    $bookId = $pdo->lastInsertId();
-    $copySql = "INSERT INTO bookcopy (bookID, status) VALUES (?, 'available')";
-    $pdo->prepare($copySql)->execute([$bookId]);
+    try {
+        // Check if book exists
+        $checkStmt = $pdo->prepare("SELECT isbn FROM book WHERE isbn = ?");
+        $checkStmt->execute([$isbn]);
         
-    echo "Successfully added " . $title;
+        if ($checkStmt->fetch()) {
+            die("Error: This ISBN already exists in the system.");
+        }
 
-} catch (\PDOException $e) {
-    echo "failed to add book." . $e->getMessage();
+        // Insert new book
+        $sql = "INSERT INTO book (title, author, isbn, genre) VALUES (?, ?, ?, ?)";
+        $pdo->prepare($sql)->execute([$title, $author, $isbn, $genre]);
+
+        // Automatically create the first copy
+        $bookId = $pdo->lastInsertId();
+        $pdo->prepare("INSERT INTO bookcopy (bookID, status) VALUES (?, 'available')")
+            ->execute([$bookId]);
+
+        header("Location: ../../frontend/adminDashboard.php?success=1");
+        exit;
+    } catch (PDOException $e) {
+        echo "Failed: " . $e->getMessage();
+    }
 }

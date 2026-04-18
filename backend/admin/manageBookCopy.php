@@ -1,15 +1,16 @@
 <?php
-require_once "config/config.php";
+// 1. Path fix: Go up one level to reach the config folder
+require_once "../config/config.php";
 
 try {
-    // 1. The JOIN Query grabs the copy ID, the Book Title, and the Status
+    // 2. The JOIN Query grabs the copy ID, the Book Title, and the Status
     $sql = "SELECT 
-                bookcopy.id AS copy_id, 
-                book.title, 
-                bookcopy.status 
-            FROM bookcopy 
-            JOIN book ON bookcopy.bookID = book.id
-            ORDER BY book.title ASC";
+                bc.id AS copy_id, 
+                b.title, 
+                bc.status 
+            FROM bookcopy bc
+            JOIN book b ON bc.bookID = b.id
+            ORDER BY b.title ASC";
             
     $stmt = $pdo->query($sql);
     $copies = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -23,19 +24,32 @@ try {
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Library Inventory</title>
+    <title>Library Inventory Management</title>
     <style>
-        /* A little basic styling to make it readable */
-        table { border-collapse: collapse; width: 100%; max-width: 800px; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 10px; text-align: left; }
-        th { background-color: #f4f4f4; }
-        .status-available { color: green; font-weight: bold; }
-        .status-checked-out { color: orange; font-weight: bold; }
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+        table { border-collapse: collapse; width: 100%; max-width: 900px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background-color: #007bff; color: white; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        .status-available { color: #28a745; font-weight: bold; }
+        .status-on-loan { color: #fd7e14; font-weight: bold; }
+        .btn-remove { color: #dc3545; text-decoration: none; font-weight: bold; }
+        .btn-remove:hover { text-decoration: underline; }
+        .disabled { color: #6c757d; cursor: not-allowed; }
+        .nav-link { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; }
     </style>
 </head>
 <body>
 
-    <h2>Library Inventory</h2>
+    <a href="../../frontend/adminDashboard.php" class="nav-link">&larr; Back to Dashboard</a>
+
+    <h2>Library Inventory Management</h2>
+
+    <?php if (isset($_GET['msg'])): ?>
+        <p style="color: green; border: 1px solid green; padding: 10px; background: #e9f7ef;">
+            <?= htmlspecialchars($_GET['msg']) ?>
+        </p>
+    <?php endif; ?>
 
     <table>
         <thead>
@@ -55,18 +69,19 @@ try {
                 <?php foreach ($copies as $copy): ?>
                     <tr>
                         <td>#<?= htmlspecialchars($copy['copy_id']) ?></td>
-                        
                         <td><?= htmlspecialchars($copy['title']) ?></td>
-                        
-                        <td class="<?= $copy['status'] === 'available' ? 'status-available' : 'status-checked-out' ?>">
+                        <td class="<?= $copy['status'] === 'available' ? 'status-available' : 'status-on-loan' ?>">
                             <?= ucfirst(str_replace('_', ' ', htmlspecialchars($copy['status']))) ?>
                         </td>
-                        
                         <td>
                             <?php if ($copy['status'] === 'available'): ?>
-                                <a href="remove_copy.php?copy_id=<?= $copy['copy_id'] ?>">Remove Copy</a>
+                                <a href="removeBookCopy.php?id=<?= $copy['copy_id'] ?>" 
+                                   class="btn-remove" 
+                                   onclick="return confirm('Delete Copy #<?= $copy['copy_id'] ?> (<?= htmlspecialchars($copy['title']) ?>)?')">
+                                   Remove Copy
+                                </a>
                             <?php else: ?>
-                                <span style="color: gray;">Cannot Remove (Loaned)</span>
+                                <span class="disabled">Cannot Remove (On Loan)</span>
                             <?php endif; ?>
                         </td>
                     </tr>

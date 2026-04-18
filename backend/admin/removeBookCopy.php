@@ -1,15 +1,22 @@
 <?php
-require_once "config/config.php";
+require_once "../config/config.php";
 
-$copyId = '1';
+// 1. Get the ID from the URL
+$copyId = $_GET['id'] ?? null;
+
+if (!$copyId) {
+    die("Error: No copy ID provided.");
+}
 
 try {
-    $deleteSql = "DELETE FROM bookCopy WHERE id = ?";
+    $deleteSql = "DELETE FROM bookcopy WHERE id = ?";
     $deleteStmt = $pdo->prepare($deleteSql);
     $deleteStmt->execute([$copyId]);
 
-    echo "Successfully removed #$copyId book copy";
+    // 3. Redirect back to the inventory 
+    header("Location: manageBookCopy.php?msg=Copy+Removed");
+    exit;
 
 } catch (\PDOException $e) {
-    echo "failed to remove book." . $e->getMessage();
+    echo "Failed to remove book copy: " . $e->getMessage();
 }
