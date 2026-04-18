@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once "config/config.php";
 
 try {
     // 1. The JOIN Query grabs the copy ID, the Book Title, and the Status

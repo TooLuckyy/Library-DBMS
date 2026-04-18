@@ -1,6 +1,6 @@
 <?php
 session_start();
-require_once "backend/config/config.php";
+require_once "config/config.php";
 
 $email = $_POST['email'] ?? '';
 $password = $_POST['password'] ?? '';
@@ -25,7 +25,7 @@ try {
         $_SESSION['name'] = $user['name'];
         
         // Redirect based on role
-        header("Location: " . ($role === 'librarian' ? "adminDashboard.php" : "studentDashboard.php"));
+        header("Location: ../frontend/" . ($role === 'librarian' ? "adminDashboard.php" : "studentDashboard.php"));
         exit;
     } else {
         echo "Invalid email or password.";

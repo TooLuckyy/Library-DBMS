@@ -1,5 +1,5 @@
 <?php
-require_once "config.php";
+require_once "config/config.php";
 
 function getAvalibility($pdo, $copyId) {
     $sql = "SELECT status FROM bookcopy WHERE id = ?";

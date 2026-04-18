@@ -1,5 +1,5 @@
 <?php
-require_once 'config.php';
+require_once "config/config.php";
 
 // 2. Test if $pdo exists from the config file
 if (isset($pdo)) {
