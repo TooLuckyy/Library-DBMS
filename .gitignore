@@ -1,5 +1,5 @@
 # --- Database & Environment ---
-backend/util/config.php
+backend/config.php
 .env
 
 # --- PHP/XAMPP Junk ---
