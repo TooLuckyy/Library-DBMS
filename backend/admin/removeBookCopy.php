@@ -14,7 +14,7 @@ try {
     $deleteStmt->execute([$copyId]);
 
     // 3. Redirect back to the inventory 
-    header("Location: manageBookCopy.php?msg=Copy+Removed");
+    header("Location: manageBookCopy.php?msg=Copy+Removed+Successfully");
     exit;
 
 } catch (\PDOException $e) {

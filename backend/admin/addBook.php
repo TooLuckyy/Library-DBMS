@@ -1,5 +1,5 @@
 <?php
-require_once "../config/config.php"; 
+require_once "../config/config.php";
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $title = $_POST['title'];
@@ -8,26 +8,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $genre = $_POST['genre'];
 
     try {
-        // Check if book exists
+        // 1. Check if ISBN exists
         $checkStmt = $pdo->prepare("SELECT isbn FROM book WHERE isbn = ?");
         $checkStmt->execute([$isbn]);
-        
+
         if ($checkStmt->fetch()) {
-            die("Error: This ISBN already exists in the system.");
+             die("Error: A book with this ISBN already exists. <a href='../../frontend/addBookForm.php'>Go back</a>");
         }
 
-        // Insert new book
-        $sql = "INSERT INTO book (title, author, isbn, genre) VALUES (?, ?, ?, ?)";
-        $pdo->prepare($sql)->execute([$title, $author, $isbn, $genre]);
+        // 2. Insert
+        $insertSql = "INSERT INTO book (title, author, isbn, genre) VALUES (?, ?, ?, ?)";
+        $pdo->prepare($insertSql)->execute([$title, $author, $isbn, $genre]);
 
-        // Automatically create the first copy
+        // 3. Create the first physical copy
         $bookId = $pdo->lastInsertId();
-        $pdo->prepare("INSERT INTO bookcopy (bookID, status) VALUES (?, 'available')")
-            ->execute([$bookId]);
-
-        header("Location: ../../frontend/adminDashboard.php?success=1");
+        $pdo->prepare("INSERT INTO bookcopy (bookID, status) VALUES (?, 'available')")->execute([$bookId]);
+        
+        // 4. Redirect back to dashboard
+        header("Location: ../../frontend/adminDashboard.php?msg=Book+Added+Successfully");
         exit;
+
     } catch (PDOException $e) {
-        echo "Failed: " . $e->getMessage();
+        echo "Database error: " . $e->getMessage();
     }
 }
