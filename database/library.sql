@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 15, 2026 at 07:35 AM
+-- Generation Time: Apr 20, 2026 at 07:42 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -140,6 +140,30 @@ INSERT INTO `loan` (`id`, `bookCopyId`, `studentId`, `borrowDate`, `dueDate`, `r
 (1, 1, 101, '2026-04-13 21:25:15', '2026-04-27', '2026-04-27 00:00:00'),
 (2, 1, 101, '2026-04-15 03:33:35', '2026-04-29', NULL);
 
+--
+-- Triggers `loan`
+--
+DELIMITER $$
+CREATE TRIGGER `calcFine` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate > NEW.dueDate THEN
+    SET @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
+    INSERT INTO fine (loanId, amount, status) 
+    VALUES (NEW.id, @daysLate * 1.00, 'unpaid');
+END IF
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `returnStatus` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND OLD.returnDate IS NULL THEN
+    UPDATE bookcopy SET status = 'available' WHERE id = NEW.bookCopyId;
+END IF
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `updateStatus` AFTER INSERT ON `loan` FOR EACH ROW UPDATE bookcopy
+SET status = 'checked_out'
+WHERE bookCopyId = bookcopy.id
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -150,25 +174,26 @@ CREATE TABLE `student` (
   `studentId` int(11) NOT NULL,
   `name` varchar(100) NOT NULL,
   `email` varchar(50) DEFAULT NULL,
-  `phoneNumber` varchar(20) DEFAULT NULL
+  `phoneNumber` varchar(20) DEFAULT NULL,
+  `password` varchar(30) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `student`
 --
 
-INSERT INTO `student` (`studentId`, `name`, `email`, `phoneNumber`) VALUES
-(101, 'John Doe', 'JohnDoe355@gmail.com', '(387)-234-2919'),
-(102, 'Nolan Bright', 'a.aliquet@google.com', '(867) 736-1313'),
-(103, 'Xanthus Brennan', 'ac.turpis@icloud.ca', '(843) 954-8189'),
-(104, 'Shannon Bullock', 'euismod.et.commodo@icloud.couk', '(971) 869-7475'),
-(105, 'Sheila Jackson', 'a@hotmail.ca', '1-680-636-7243'),
-(106, 'Nasim Roman', 'enim.etiam@aol.couk', '(627) 145-9192'),
-(107, 'Colleen Sargent', 'pede.praesent.eu@yahoo.org', '(805) 376-6781'),
-(108, 'Chaney Coleman', 'at.risus@google.com', '1-127-238-4269'),
-(109, 'Hiram Evans', 'ultrices.mauris@protonmail.edu', '1-385-964-8602'),
-(110, 'Amanda Elliott', 'mi.ac@google.couk', '1-859-466-4528'),
-(111, 'Yvette Deleon', 'suspendisse@outlook.ca', '(307) 827-1719');
+INSERT INTO `student` (`studentId`, `name`, `email`, `phoneNumber`, `password`) VALUES
+(101, 'John Doe', 'JohnDoe355@gmail.com', '(387)-234-2919', 'password123'),
+(102, 'Nolan Bright', 'a.aliquet@google.com', '(867) 736-1313', ''),
+(103, 'Xanthus Brennan', 'ac.turpis@icloud.ca', '(843) 954-8189', ''),
+(104, 'Shannon Bullock', 'euismod.et.commodo@icloud.couk', '(971) 869-7475', ''),
+(105, 'Sheila Jackson', 'a@hotmail.ca', '1-680-636-7243', ''),
+(106, 'Nasim Roman', 'enim.etiam@aol.couk', '(627) 145-9192', ''),
+(107, 'Colleen Sargent', 'pede.praesent.eu@yahoo.org', '(805) 376-6781', ''),
+(108, 'Chaney Coleman', 'at.risus@google.com', '1-127-238-4269', ''),
+(109, 'Hiram Evans', 'ultrices.mauris@protonmail.edu', '1-385-964-8602', ''),
+(110, 'Amanda Elliott', 'mi.ac@google.couk', '1-859-466-4528', ''),
+(111, 'Yvette Deleon', 'suspendisse@outlook.ca', '(307) 827-1719', '');
 
 --
 -- Indexes for dumped tables
