@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 20, 2026 at 08:33 AM
+-- Generation Time: Apr 21, 2026 at 01:30 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -20,6 +20,74 @@ SET time_zone = "+00:00";
 --
 -- Database: `library`
 --
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `checkEligibility` (IN `pStudentId` INT, OUT `isEligible` BOOLEAN, OUT `message` VARCHAR(255))   BEGIN
+DECLARE activeLoan INT;
+DECLARE totalFine DECIMAL(5,2);
+
+SELECT COUNT(*) INTO activeLoan
+FROM loan
+WHERE studentId = pStudentId AND returnDate IS NULL;
+
+SELECT IFNULL(SUM(f.amount), 0) INTO totalFine
+FROM fine f
+JOIN loan l ON f.loanId = l.id
+WHERE l.studentId = pStudentId AND f.status = 'unpaid';
+
+IF activeLoan >= 5 THEN
+	SET isEligible = FALSE;
+    SET message = 'Student has reached the limit of 5 active loans.';
+ELSEIF totalFine >= 10.00 THEN
+	SET isEligible = FALSE;
+    SET message = CONCAT('Student restricted: Outstanding fines of $', totalFine);
+ELSE
+	SET isEligible = TRUE;
+    SET message = 'Student can rent.';
+END IF;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `getPopularBook` (IN `pStudentId` INT)   BEGIN
+
+DECLARE studentMajor varchar(100);
+SET studentMajor = getMajor(pStudentId);
+
+SELECT b.title, b.author, b.genre, COUNT(l.id) AS borrowCount
+FROM loan l
+JOIN student s ON l.studentId = s.studentId
+JOIN bookcopy bc ON l.bookCopyId = bc.id
+JOIN book b ON bc.bookID = b.id
+WHERE s.major = studentMajor
+GROUP BY b.id
+ORDER BY borrowCount DESC
+LIMIT 5;
+
+END$$
+
+--
+-- Functions
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `getMajor` (`pStudentId` INT) RETURNS VARCHAR(100) CHARSET utf8mb4 COLLATE utf8mb4_general_ci DETERMINISTIC BEGIN
+DECLARE studentMajor varchar(100);
+
+SELECT major INTO studentMajor 
+FROM student
+WHERE studentId = pStudentId;
+RETURN studentMajor;
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `isAvailable` (`pBookId` INT) RETURNS TINYINT(1) DETERMINISTIC BEGIN
+DECLARE aCount INT;
+SELECT COUNT(*) INTO aCount 
+FROM bookcopy
+WHERE bookID = pBookId AND status = 'available';
+RETURN aCount > 0;
+END$$
+
+DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -133,7 +201,14 @@ CREATE TABLE `fine` (
   `loanId` int(11) NOT NULL,
   `amount` decimal(10,2) NOT NULL,
   `status` enum('unpaid','paid') DEFAULT 'unpaid'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ;
+
+--
+-- Dumping data for table `fine`
+--
+
+INSERT INTO `fine` (`fineId`, `loanId`, `amount`, `status`) VALUES
+(3, 5, 5.00, 'unpaid');
 
 -- --------------------------------------------------------
 
@@ -148,7 +223,7 @@ CREATE TABLE `librarian` (
   `phoneNumber` varchar(20) DEFAULT NULL,
   `role` enum('admin','staff') DEFAULT 'staff',
   `password` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ;
 
 --
 -- Dumping data for table `librarian`
@@ -179,11 +254,33 @@ CREATE TABLE `loan` (
   `borrowDate` timestamp NOT NULL DEFAULT current_timestamp(),
   `dueDate` date NOT NULL,
   `returnDate` datetime DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ;
+
+--
+-- Dumping data for table `loan`
+--
+
+INSERT INTO `loan` (`id`, `bookCopyId`, `studentId`, `borrowDate`, `dueDate`, `returnDate`) VALUES
+(5, 4, 101, '2026-04-01 15:00:00', '2026-04-10', '2026-04-20 12:00:00');
 
 --
 -- Triggers `loan`
 --
+DELIMITER $$
+CREATE TRIGGER `onReturn` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND old.returnDate IS NULL THEN
+UPDATE bookcopy
+SET status = 'available'
+WHERE id = NEW.bookCopyId;
+    
+IF NEW.returnDate > NEW.dueDate THEN 
+set @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
+INSERT INTO fine (loanId, amount, status)
+VALUES 	(NEW.id, @daysLate * .50, 'unpaid');
+END IF;
+
+END IF
+$$
+DELIMITER ;
 DELIMITER $$
 CREATE TRIGGER `updateStatus` AFTER INSERT ON `loan` FOR EACH ROW UPDATE bookcopy
 SET status = 'checked_out'
@@ -202,25 +299,26 @@ CREATE TABLE `student` (
   `name` varchar(100) NOT NULL,
   `email` varchar(50) DEFAULT NULL,
   `phoneNumber` varchar(20) DEFAULT NULL,
-  `password` varchar(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  `password` varchar(255) NOT NULL,
+  `major` varchar(100) DEFAULT 'General Studies'
+) ;
 
 --
 -- Dumping data for table `student`
 --
 
-INSERT INTO `student` (`studentId`, `name`, `email`, `phoneNumber`, `password`) VALUES
-(101, 'John Doe', 'JohnDoe355@gmail.com', '(387)-234-2919', 'password123'),
-(102, 'Nolan Bright', 'a.aliquet@google.com', '(867) 736-1313', ''),
-(103, 'Xanthus Brennan', 'ac.turpis@icloud.ca', '(843) 954-8189', ''),
-(104, 'Shannon Bullock', 'euismod.et.commodo@icloud.couk', '(971) 869-7475', ''),
-(105, 'Sheila Jackson', 'a@hotmail.ca', '1-680-636-7243', ''),
-(106, 'Nasim Roman', 'enim.etiam@aol.couk', '(627) 145-9192', ''),
-(107, 'Colleen Sargent', 'pede.praesent.eu@yahoo.org', '(805) 376-6781', ''),
-(108, 'Chaney Coleman', 'at.risus@google.com', '1-127-238-4269', ''),
-(109, 'Hiram Evans', 'ultrices.mauris@protonmail.edu', '1-385-964-8602', ''),
-(110, 'Amanda Elliott', 'mi.ac@google.couk', '1-859-466-4528', ''),
-(111, 'Yvette Deleon', 'suspendisse@outlook.ca', '(307) 827-1719', '');
+INSERT INTO `student` (`studentId`, `name`, `email`, `phoneNumber`, `password`, `major`) VALUES
+(101, 'John Doe', 'JohnDoe355@gmail.com', '(387)-234-2919', 'securePass101', 'Computer Science'),
+(102, 'Nolan Bright', 'a.aliquet@google.com', '(867) 736-1313', 'securePass102', 'Computer Science'),
+(103, 'Xanthus Brennan', 'ac.turpis@icloud.ca', '(843) 954-8189', 'bizPassword456', 'Business Administration'),
+(104, 'Shannon Bullock', 'euismod.et.commodo@icloud.couk', '(971) 869-7475', 'nursePass789', 'Nursing'),
+(105, 'Sheila Jackson', 'a@hotmail.ca', '1-680-636-7243', 'engPassword321', 'Mechanical Engineering'),
+(106, 'Nasim Roman', 'enim.etiam@aol.couk', '(627) 145-9192', 'psychPass654', 'Psychology'),
+(107, 'Colleen Sargent', 'pede.praesent.eu@yahoo.org', '(805) 376-6781', 'csPassword789', 'Computer Science'),
+(108, 'Chaney Coleman', 'at.risus@google.com', '1-127-238-4269', 'artPass123', 'Fine Arts'),
+(109, 'Hiram Evans', 'ultrices.mauris@protonmail.edu', '1-385-964-8602', 'bioPass456', 'Biology'),
+(110, 'Amanda Elliott', 'mi.ac@google.couk', '1-859-466-4528', 'nursePass321', 'Nursing'),
+(111, 'Yvette Deleon', 'suspendisse@outlook.ca', '(307) 827-1719', 'bizPass789', 'Business Administration');
 
 --
 -- Indexes for dumped tables
@@ -283,7 +381,7 @@ ALTER TABLE `book`
 -- AUTO_INCREMENT for table `bookcopy`
 --
 ALTER TABLE `bookcopy`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
 
 --
 -- AUTO_INCREMENT for table `fine`
@@ -295,7 +393,7 @@ ALTER TABLE `fine`
 -- AUTO_INCREMENT for table `loan`
 --
 ALTER TABLE `loan`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
