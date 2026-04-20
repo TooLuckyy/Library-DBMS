@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 20, 2026 at 07:42 AM
+-- Generation Time: Apr 20, 2026 at 08:33 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -53,6 +53,21 @@ INSERT INTO `book` (`id`, `title`, `author`, `isbn`, `genre`) VALUES
 (11, 'A Garden Planted in Storms', 'Amir E. Whitehead', '39652', 'thriller '),
 (12, 'What will You do', 'Miguel Osen', '619', 'Thriller');
 
+--
+-- Triggers `book`
+--
+DELIMITER $$
+CREATE TRIGGER `makeBookCopy` AFTER INSERT ON `book` FOR EACH ROW BEGIN
+DECLARE count INT DEFAULT 0;
+WHILE count < 3 DO
+	INSERT INTO bookcopy (bookID, status)
+    VALUES (NEW.id, 'available');
+    SET count = count + 1;
+END WHILE;
+END
+$$
+DELIMITER ;
+
 -- --------------------------------------------------------
 
 --
@@ -70,8 +85,42 @@ CREATE TABLE `bookcopy` (
 --
 
 INSERT INTO `bookcopy` (`id`, `bookID`, `status`) VALUES
-(1, 1, 'checked_out'),
-(2, 12, 'available');
+(3, 5, 'available'),
+(4, 1, 'available'),
+(5, 10, 'available'),
+(6, 4, 'available'),
+(7, 3, 'available'),
+(8, 11, 'available'),
+(9, 6, 'available'),
+(10, 2, 'available'),
+(11, 12, 'available'),
+(12, 7, 'available'),
+(13, 8, 'available'),
+(14, 9, 'available'),
+(18, 5, 'available'),
+(19, 1, 'available'),
+(20, 10, 'available'),
+(21, 4, 'available'),
+(22, 3, 'available'),
+(23, 11, 'available'),
+(24, 6, 'available'),
+(25, 2, 'available'),
+(26, 12, 'available'),
+(27, 7, 'available'),
+(28, 8, 'available'),
+(29, 9, 'available'),
+(33, 5, 'available'),
+(34, 1, 'available'),
+(35, 10, 'available'),
+(36, 4, 'available'),
+(37, 3, 'available'),
+(38, 11, 'available'),
+(39, 6, 'available'),
+(40, 2, 'available'),
+(41, 12, 'available'),
+(42, 7, 'available'),
+(43, 8, 'available'),
+(44, 9, 'available');
 
 -- --------------------------------------------------------
 
@@ -133,34 +182,12 @@ CREATE TABLE `loan` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `loan`
---
-
-INSERT INTO `loan` (`id`, `bookCopyId`, `studentId`, `borrowDate`, `dueDate`, `returnDate`) VALUES
-(1, 1, 101, '2026-04-13 21:25:15', '2026-04-27', '2026-04-27 00:00:00'),
-(2, 1, 101, '2026-04-15 03:33:35', '2026-04-29', NULL);
-
---
 -- Triggers `loan`
 --
 DELIMITER $$
-CREATE TRIGGER `calcFine` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate > NEW.dueDate THEN
-    SET @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
-    INSERT INTO fine (loanId, amount, status) 
-    VALUES (NEW.id, @daysLate * 1.00, 'unpaid');
-END IF
-$$
-DELIMITER ;
-DELIMITER $$
-CREATE TRIGGER `returnStatus` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND OLD.returnDate IS NULL THEN
-    UPDATE bookcopy SET status = 'available' WHERE id = NEW.bookCopyId;
-END IF
-$$
-DELIMITER ;
-DELIMITER $$
 CREATE TRIGGER `updateStatus` AFTER INSERT ON `loan` FOR EACH ROW UPDATE bookcopy
 SET status = 'checked_out'
-WHERE bookCopyId = bookcopy.id
+WHERE id = NEW.bookCopyId
 $$
 DELIMITER ;
 
@@ -175,7 +202,7 @@ CREATE TABLE `student` (
   `name` varchar(100) NOT NULL,
   `email` varchar(50) DEFAULT NULL,
   `phoneNumber` varchar(20) DEFAULT NULL,
-  `password` varchar(30) NOT NULL
+  `password` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -256,7 +283,7 @@ ALTER TABLE `book`
 -- AUTO_INCREMENT for table `bookcopy`
 --
 ALTER TABLE `bookcopy`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `fine`
