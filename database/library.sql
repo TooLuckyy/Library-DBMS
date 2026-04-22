@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 21, 2026 at 01:30 AM
+-- Generation Time: Apr 22, 2026 at 04:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -145,7 +145,7 @@ DELIMITER ;
 CREATE TABLE `bookcopy` (
   `id` int(11) NOT NULL,
   `bookID` int(11) DEFAULT NULL,
-  `status` enum('available','checked_out','lost') DEFAULT 'available'
+  `status` enum('available','checked_out','lost','on_hold') DEFAULT 'available'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -213,6 +213,20 @@ INSERT INTO `fine` (`fineId`, `loanId`, `amount`, `status`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `hold`
+--
+
+CREATE TABLE `hold` (
+  `id` int(11) NOT NULL,
+  `studentId` int(11) NOT NULL,
+  `bookId` int(11) NOT NULL,
+  `holdDate` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('waiting','notified','expired','completed') DEFAULT 'waiting'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `librarian`
 --
 
@@ -223,7 +237,7 @@ CREATE TABLE `librarian` (
   `phoneNumber` varchar(20) DEFAULT NULL,
   `role` enum('admin','staff') DEFAULT 'staff',
   `password` varchar(255) NOT NULL
-) ;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `librarian`
@@ -250,7 +264,9 @@ INSERT INTO `librarian` (`staffId`, `name`, `email`, `phoneNumber`, `role`, `pas
 CREATE TABLE `loan` (
   `id` int(11) NOT NULL,
   `bookCopyId` int(11) DEFAULT NULL,
+  `processedBy` int(3) DEFAULT NULL,
   `studentId` int(11) DEFAULT NULL,
+  `loanStatus` enum('pending','active','returned','cancelled') DEFAULT 'pending',
   `borrowDate` timestamp NOT NULL DEFAULT current_timestamp(),
   `dueDate` date NOT NULL,
   `returnDate` datetime DEFAULT NULL
@@ -260,17 +276,29 @@ CREATE TABLE `loan` (
 -- Dumping data for table `loan`
 --
 
-INSERT INTO `loan` (`id`, `bookCopyId`, `studentId`, `borrowDate`, `dueDate`, `returnDate`) VALUES
-(5, 4, 101, '2026-04-01 15:00:00', '2026-04-10', '2026-04-20 12:00:00');
+INSERT INTO `loan` (`id`, `bookCopyId`, `processedBy`, `studentId`, `loanStatus`, `borrowDate`, `dueDate`, `returnDate`) VALUES
+(5, 4, NULL, 101, 'pending', '2026-04-01 15:00:00', '2026-04-10', '2026-04-20 12:00:00');
 
 --
 -- Triggers `loan`
 --
 DELIMITER $$
 CREATE TRIGGER `onReturn` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND old.returnDate IS NULL THEN
-UPDATE bookcopy
-SET status = 'available'
-WHERE id = NEW.bookCopyId;
+SELECT id INTO @nextHoldId 
+FROM hold 
+WHERE bookId = (SELECT bookID FROM bookcopy WHERE id = NEW.bookCopyId)
+AND status = 'waiting'
+ORDER BY holdDate ASC LIMIT 1;
+
+IF @nextHoldId IS NOT NULL THEN
+    UPDATE hold SET status = 'notified' WHERE id = @nextHoldId;
+    UPDATE bookcopy SET status = 'on_hold' WHERE id = NEW.bookCopyId;
+    
+ELSE
+	UPDATE bookcopy 
+	SET status = 'available' 
+	WHERE id = NEW.bookCopyId;
+END IF;
     
 IF NEW.returnDate > NEW.dueDate THEN 
 set @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
@@ -346,6 +374,14 @@ ALTER TABLE `fine`
   ADD KEY `loanId` (`loanId`);
 
 --
+-- Indexes for table `hold`
+--
+ALTER TABLE `hold`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `studentId` (`studentId`),
+  ADD KEY `bookId` (`bookId`);
+
+--
 -- Indexes for table `librarian`
 --
 ALTER TABLE `librarian`
@@ -358,7 +394,8 @@ ALTER TABLE `librarian`
 ALTER TABLE `loan`
   ADD PRIMARY KEY (`id`),
   ADD KEY `bookCopyId` (`bookCopyId`),
-  ADD KEY `studentId` (`studentId`);
+  ADD KEY `studentId` (`studentId`),
+  ADD KEY `fk_librarian_loan` (`processedBy`);
 
 --
 -- Indexes for table `student`
@@ -390,6 +427,12 @@ ALTER TABLE `fine`
   MODIFY `fineId` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `hold`
+--
+ALTER TABLE `hold`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `loan`
 --
 ALTER TABLE `loan`
@@ -412,9 +455,17 @@ ALTER TABLE `fine`
   ADD CONSTRAINT `fine_ibfk_1` FOREIGN KEY (`loanId`) REFERENCES `loan` (`id`) ON DELETE CASCADE;
 
 --
+-- Constraints for table `hold`
+--
+ALTER TABLE `hold`
+  ADD CONSTRAINT `hold_ibfk_1` FOREIGN KEY (`studentId`) REFERENCES `student` (`studentId`),
+  ADD CONSTRAINT `hold_ibfk_2` FOREIGN KEY (`bookId`) REFERENCES `book` (`id`);
+
+--
 -- Constraints for table `loan`
 --
 ALTER TABLE `loan`
+  ADD CONSTRAINT `fk_librarian_loan` FOREIGN KEY (`processedBy`) REFERENCES `librarian` (`staffId`),
   ADD CONSTRAINT `loan_ibfk_1` FOREIGN KEY (`bookCopyId`) REFERENCES `bookcopy` (`id`),
   ADD CONSTRAINT `loan_ibfk_2` FOREIGN KEY (`studentId`) REFERENCES `student` (`studentId`);
 COMMIT;
