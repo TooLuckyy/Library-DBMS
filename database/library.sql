@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Apr 22, 2026 at 04:11 AM
+-- Generation Time: Apr 23, 2026 at 08:35 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -119,7 +119,8 @@ INSERT INTO `book` (`id`, `title`, `author`, `isbn`, `genre`) VALUES
 (9, 'When the Ocean Learned to Burn', 'Rigel Christensen', '68296', 'science fiction'),
 (10, 'The Midnight Architect', 'Maggy O. Good', '15167', 'dystopian'),
 (11, 'A Garden Planted in Storms', 'Amir E. Whitehead', '39652', 'thriller '),
-(12, 'What will You do', 'Miguel Osen', '619', 'Thriller');
+(12, 'What will You do', 'Miguel Osen', '619', 'Thriller'),
+(13, 'Harry Potter', 'J.K. Rowling', '3377889910', 'Fantasy');
 
 --
 -- Triggers `book`
@@ -153,14 +154,13 @@ CREATE TABLE `bookcopy` (
 --
 
 INSERT INTO `bookcopy` (`id`, `bookID`, `status`) VALUES
-(3, 5, 'available'),
+(3, 5, 'on_hold'),
 (4, 1, 'available'),
 (5, 10, 'available'),
 (6, 4, 'available'),
 (7, 3, 'available'),
 (8, 11, 'available'),
 (9, 6, 'available'),
-(10, 2, 'available'),
 (11, 12, 'available'),
 (12, 7, 'available'),
 (13, 8, 'available'),
@@ -168,11 +168,11 @@ INSERT INTO `bookcopy` (`id`, `bookID`, `status`) VALUES
 (18, 5, 'available'),
 (19, 1, 'available'),
 (20, 10, 'available'),
-(21, 4, 'available'),
+(21, 4, 'checked_out'),
 (22, 3, 'available'),
 (23, 11, 'available'),
 (24, 6, 'available'),
-(25, 2, 'available'),
+(25, 2, 'on_hold'),
 (26, 12, 'available'),
 (27, 7, 'available'),
 (28, 8, 'available'),
@@ -184,11 +184,13 @@ INSERT INTO `bookcopy` (`id`, `bookID`, `status`) VALUES
 (37, 3, 'available'),
 (38, 11, 'available'),
 (39, 6, 'available'),
-(40, 2, 'available'),
 (41, 12, 'available'),
 (42, 7, 'available'),
 (43, 8, 'available'),
-(44, 9, 'available');
+(44, 9, 'available'),
+(45, 13, 'available'),
+(46, 13, 'available'),
+(47, 13, 'available');
 
 -- --------------------------------------------------------
 
@@ -208,7 +210,8 @@ CREATE TABLE `fine` (
 --
 
 INSERT INTO `fine` (`fineId`, `loanId`, `amount`, `status`) VALUES
-(3, 5, 5.00, 'unpaid');
+(4, 24, 1.50, 'unpaid'),
+(5, 26, 8.00, 'unpaid');
 
 -- --------------------------------------------------------
 
@@ -223,6 +226,22 @@ CREATE TABLE `hold` (
   `holdDate` timestamp NOT NULL DEFAULT current_timestamp(),
   `status` enum('waiting','notified','expired','completed') DEFAULT 'waiting'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `hold`
+--
+
+INSERT INTO `hold` (`id`, `studentId`, `bookId`, `holdDate`, `status`) VALUES
+(1, 102, 2, '2026-04-22 08:15:58', 'notified'),
+(2, 105, 5, '2026-04-22 08:15:58', 'waiting'),
+(3, 103, 5, '2026-04-22 08:15:58', 'waiting'),
+(4, 108, 5, '2026-04-22 08:15:58', 'waiting'),
+(5, 106, 5, '2026-04-22 08:15:58', 'waiting'),
+(6, 104, 5, '2026-04-22 08:15:58', 'waiting'),
+(7, 101, 5, '2026-04-22 08:15:58', 'waiting'),
+(8, 110, 5, '2026-04-22 08:15:58', 'waiting'),
+(9, 107, 5, '2026-04-22 08:15:58', 'waiting'),
+(10, 111, 5, '2026-04-22 08:15:58', 'notified');
 
 -- --------------------------------------------------------
 
@@ -245,7 +264,7 @@ CREATE TABLE `librarian` (
 
 INSERT INTO `librarian` (`staffId`, `name`, `email`, `phoneNumber`, `role`, `password`) VALUES
 (1, 'Alice Johnson', 'alice.j@library.com', '555-1001', 'admin', 'd7f426595d8fcdb34a510a20c78c957f'),
-(2, 'Bob Smith', 'bob.s@library.com', '555-1002', 'staff', '0cab1f01e180f1ff5b143076de8820d3'),
+(2, 'Bob Smith', 'bob.s@library.com', '555-1002', 'staff', 'password123'),
 (3, 'Charlie Davis', 'charlie.d@library.com', '555-1003', 'staff', '9661aa9457a54ab363e0f502dac338a2'),
 (4, 'Diana Prince', 'diana.p@library.com', '555-1004', 'admin', '032b77b6e587ef1460642cb9ca043852'),
 (5, 'Ethan Hunt', 'ethan.h@library.com', '555-1005', 'staff', 'e86e6b1f4e46154861f7894b6f12478b'),
@@ -277,33 +296,38 @@ CREATE TABLE `loan` (
 --
 
 INSERT INTO `loan` (`id`, `bookCopyId`, `processedBy`, `studentId`, `loanStatus`, `borrowDate`, `dueDate`, `returnDate`) VALUES
-(5, 4, NULL, 101, 'pending', '2026-04-01 15:00:00', '2026-04-10', '2026-04-20 12:00:00');
+(22, 20, 6, 108, 'returned', '2026-04-22 08:25:03', '2026-04-24', '2026-04-22 04:23:00'),
+(23, 28, 1, 101, 'returned', '2026-04-22 09:11:53', '2026-05-06', '2026-04-22 04:35:39'),
+(24, 13, 3, 101, 'active', '2026-04-22 08:43:38', '2026-05-06', '2026-05-09 12:00:00'),
+(25, 20, 3, 101, 'active', '2026-04-22 08:43:38', '2026-05-06', '2026-05-01 12:00:00'),
+(26, 25, 1, 101, 'returned', '2026-04-22 09:33:04', '2026-05-06', '2026-05-22 12:00:00'),
+(27, 21, NULL, 101, 'pending', '2026-04-23 01:35:02', '2026-05-06', NULL);
 
 --
 -- Triggers `loan`
 --
 DELIMITER $$
-CREATE TRIGGER `onReturn` AFTER UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND old.returnDate IS NULL THEN
-SELECT id INTO @nextHoldId 
-FROM hold 
-WHERE bookId = (SELECT bookID FROM bookcopy WHERE id = NEW.bookCopyId)
-AND status = 'waiting'
-ORDER BY holdDate ASC LIMIT 1;
+CREATE TRIGGER `onReturn` BEFORE UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND OLD.returnDate IS NULL THEN
+    SET NEW.loanStatus = 'returned';
+    
+    SELECT id INTO @nextHoldId 
+    FROM hold 
+    WHERE bookId = (SELECT bookID FROM bookcopy WHERE id = NEW.bookCopyId)
+    AND status = 'waiting'
+    ORDER BY holdDate ASC LIMIT 1;
+
 
 IF @nextHoldId IS NOT NULL THEN
-    UPDATE hold SET status = 'notified' WHERE id = @nextHoldId;
-    UPDATE bookcopy SET status = 'on_hold' WHERE id = NEW.bookCopyId;
-    
+	UPDATE hold SET status = 'notified' WHERE id = 		@nextHoldId;
+	UPDATE bookcopy SET status = 'on_hold' WHERE id = NEW.bookCopyId;
 ELSE
-	UPDATE bookcopy 
-	SET status = 'available' 
-	WHERE id = NEW.bookCopyId;
+	UPDATE bookcopy SET status = 'available' WHERE id = NEW.bookCopyId;
 END IF;
-    
+
 IF NEW.returnDate > NEW.dueDate THEN 
-set @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
-INSERT INTO fine (loanId, amount, status)
-VALUES 	(NEW.id, @daysLate * .50, 'unpaid');
+	SET @daysLate = DATEDIFF(NEW.returnDate, NEW.dueDate);
+	INSERT INTO fine (loanId, amount, status)
+	VALUES (NEW.id, @daysLate * .50, 'unpaid');
 END IF;
 
 END IF
@@ -412,13 +436,13 @@ ALTER TABLE `student`
 -- AUTO_INCREMENT for table `book`
 --
 ALTER TABLE `book`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `bookcopy`
 --
 ALTER TABLE `bookcopy`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=45;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
 
 --
 -- AUTO_INCREMENT for table `fine`
@@ -430,7 +454,7 @@ ALTER TABLE `fine`
 -- AUTO_INCREMENT for table `hold`
 --
 ALTER TABLE `hold`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `loan`
