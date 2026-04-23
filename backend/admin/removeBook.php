@@ -18,8 +18,6 @@ try {
     if ($book) {
         // 2. Remove all copies
         $pdo->prepare("DELETE FROM bookcopy WHERE bookID = ?")->execute([$book['id']]);
-        
-        // 3. Remove the main book
         $pdo->prepare("DELETE FROM book WHERE isbn = ?")->execute([$isbn]);
     }
 

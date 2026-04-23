@@ -1,5 +1,4 @@
 <?php
-// 1. Path fix: Go up one level to reach the config folder
 require_once "../config/config.php";
 
 try {

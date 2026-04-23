@@ -26,13 +26,13 @@ try {
     $updateCopy = $pdo->prepare("UPDATE bookcopy SET status = 'available' WHERE id = ?");
     $updateCopy->execute([$loan['bookCopyId']]);
 
-    // 4. Fine Calculation (Logic: $1.00 per day late)
-    $dueDate = strtotime($loan['dueDate']);
+    // 4. Fine Calculation
+    //     $dueDate = strtotime($loan['dueDate']);
     $returnDate = strtotime($today);
 
     if ($returnDate > $dueDate) {
         $daysLate = floor(($returnDate - $dueDate) / (60 * 60 * 24));
-        $fineAmount = $daysLate * 1.00; // Adjust late fee here
+        $fineAmount = $daysLate * 0.50;
 
         $insertFine = $pdo->prepare("INSERT INTO fine (loanId, amount, status) VALUES (?, ?, 'unpaid')");
         $insertFine->execute([$loanId, $fineAmount]);

@@ -1,5 +1,4 @@
 <?php
-// Correct: looks for the config folder in the current directory
 require_once __DIR__ . "/config/config.php";
 
 function getAvalibility($pdo, $copyId) {
@@ -60,7 +59,6 @@ function getStudentLoanHistory($pdo, $studentId) {
 }
 
 function getStudentTotalFines($pdo, $studentId) {
-    // Note: your SQL file uses 'amount' and 'status' in the fine table
     $sql = "SELECT SUM(f.amount) as total 
             FROM fine f
             JOIN loan l ON f.loanId = l.id

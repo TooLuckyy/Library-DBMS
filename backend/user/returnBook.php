@@ -14,7 +14,6 @@ try {
         throw new Exception("Book already avalible.");
     }
 
-    //Update loan
     $pdo->beginTransaction();
 
     

@@ -2,24 +2,21 @@
 require_once "../config/config.php";
 require_once '../databaseHelper.php';
 
-// Check if the form was actually submitted via POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
-    // 1. Capture the POST data
+
     $bookCopyId = $_POST['bookCopyId'] ?? null;
     $studentId  = $_POST['studentId'] ?? null;
     $dueDate    = $_POST['dueDate'] ?? null;
     $borrowDate = date('Y-m-d'); // Current date
 
     try {
-        // Basic check to ensure fields aren't empty
         if (!$bookCopyId || !$studentId || !$dueDate) {
             throw new Exception("All fields are required.");
         }
 
         $pdo->beginTransaction();
 
-        // 2. Check availability using your existing helper function
         $status = getAvalibility($pdo, $bookCopyId);
         
         if ($status === FALSE) {
@@ -41,12 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ':borrowDate'=> $borrowDate,
             ':dueDate'   => $dueDate
         ]);
-
-        /**
-         * TRIGGER NOTE:
-         * Your MySQL trigger 'updateStatus' will now automatically 
-         * fire and update the bookcopy status to 'loaned'.
-         */
 
         $pdo->commit();
         

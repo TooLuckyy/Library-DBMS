@@ -45,6 +45,5 @@ try {
         echo "Invalid email or password. <a href='../frontend/login.php'>Try again</a>";
     }
 } catch (PDOException $e) {
-    // This will catch issues like a missing 'password' column in the student table
     echo "Database error: " . $e->getMessage();
 }
