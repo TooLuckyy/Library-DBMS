@@ -319,6 +319,34 @@ INSERT INTO `loan` (`id`, `bookCopyId`, `processedBy`, `studentId`, `loanStatus`
 -- Triggers `loan`
 --
 DELIMITER $$
+CREATE TRIGGER `loanEligibilityBeforeInsert` BEFORE INSERT ON `loan` FOR EACH ROW BEGIN
+    DECLARE vIsEligible BOOLEAN DEFAULT TRUE;
+    DECLARE vMessage VARCHAR(255) DEFAULT '';
+
+    CALL checkEligibility(NEW.studentId, vIsEligible, vMessage);
+
+    IF vIsEligible = FALSE THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = vMessage;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `loanEligibilityBeforeActivate` BEFORE UPDATE ON `loan` FOR EACH ROW BEGIN
+    DECLARE vIsEligible BOOLEAN DEFAULT TRUE;
+    DECLARE vMessage VARCHAR(255) DEFAULT '';
+
+    IF OLD.loanStatus <> 'active' AND NEW.loanStatus = 'active' THEN
+        CALL checkEligibility(NEW.studentId, vIsEligible, vMessage);
+
+        IF vIsEligible = FALSE THEN
+            SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = vMessage;
+        END IF;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
 CREATE TRIGGER `onReturn` BEFORE UPDATE ON `loan` FOR EACH ROW IF NEW.returnDate IS NOT NULL AND OLD.returnDate IS NULL THEN
     SET NEW.loanStatus = 'returned';
     

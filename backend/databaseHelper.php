@@ -113,6 +113,11 @@ function getPopularBooksByMajor($pdo, $studentId) {
 function createPendingLoanForStudent($pdo, $studentId, $bookId, $dueDate) {
     $pdo->beginTransaction();
     try {
+        $totalUnpaidFines = (float) getStudentTotalFines($pdo, $studentId);
+        if ($totalUnpaidFines >= 10.00) {
+            throw new Exception("Loan restricted: outstanding fines are $" . number_format($totalUnpaidFines, 2) . ". Please pay fines below $10.00 to borrow.");
+        }
+
         $copyStmt = $pdo->prepare("SELECT id FROM bookcopy WHERE bookID = ? AND status = 'available' ORDER BY id ASC LIMIT 1");
         $copyStmt->execute([$bookId]);
         $copy = $copyStmt->fetch(PDO::FETCH_ASSOC);
