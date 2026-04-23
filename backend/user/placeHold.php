@@ -15,15 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $studentId = $_SESSION['user_id'];
 $bookId = $_POST['bookId'] ?? null;
-$dueDate = $_POST['dueDate'] ?? null;
 
 try {
-    if (!$bookId || !$dueDate) {
-        throw new Exception("Book and due date are required.");
+    if (!$bookId) {
+        throw new Exception("Book is required.");
     }
 
-    createPendingLoanForStudent($pdo, $studentId, $bookId, $dueDate);
-    header("Location: ../../frontend/studentDashboard.php?msg=" . urlencode("Loan request created and set to pending."));
+    placeHoldForStudent($pdo, $studentId, $bookId);
+    header("Location: ../../frontend/studentDashboard.php?msg=" . urlencode("Hold placed successfully."));
     exit;
 } catch (Exception $e) {
     header("Location: ../../frontend/studentDashboard.php?msg=" . urlencode("Error: " . $e->getMessage()));

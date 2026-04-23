@@ -25,17 +25,17 @@ try {
     <meta charset="UTF-8">
     <title>Library Inventory Management</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f9f9f9; }
+        body { font-family: Arial, sans-serif; padding: 20px; background-color: #f5f3ff; }
         table { border-collapse: collapse; width: 100%; max-width: 900px; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background-color: #007bff; color: white; }
+        th { background-color: #6d28d9; color: white; }
         tr:nth-child(even) { background-color: #f2f2f2; }
         .status-available { color: #28a745; font-weight: bold; }
         .status-on-loan { color: #fd7e14; font-weight: bold; }
         .btn-remove { color: #dc3545; text-decoration: none; font-weight: bold; }
         .btn-remove:hover { text-decoration: underline; }
         .disabled { color: #6c757d; cursor: not-allowed; }
-        .nav-link { display: inline-block; margin-bottom: 20px; color: #007bff; text-decoration: none; }
+        .nav-link { display: inline-block; margin-bottom: 20px; color: #6d28d9; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -45,7 +45,7 @@ try {
     <h2>Library Inventory Management</h2>
 
     <?php if (isset($_GET['msg'])): ?>
-        <p style="color: green; border: 1px solid green; padding: 10px; background: #e9f7ef;">
+        <p style="color: #4c1d95; border: 1px solid #c4b5fd; padding: 10px; background: #ede9fe;">
             <?= htmlspecialchars($_GET['msg']) ?>
         </p>
     <?php endif; ?>

@@ -1,51 +1,32 @@
 <?php
+session_start();
 require_once "../config/config.php";
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
+    header("Location: ../../frontend/login.php");
+    exit;
+}
 
 $loanId = $_GET['id'] ?? null;
 
 if (!$loanId) {
-    die("No loan ID provided.");
+    header("Location: ../../frontend/manageLoans.php?msg=" . urlencode("No loan ID provided."));
+    exit;
 }
 
 try {
-    $pdo->beginTransaction();
-
-    // 1. Fetch loan details to check for fines
-    $stmt = $pdo->prepare("SELECT bookCopyId, dueDate FROM loan WHERE id = ?");
+    // Set returned status directly, trigger can still handle copy/fine side effects.
+    $stmt = $pdo->prepare("UPDATE loan SET returnDate = NOW(), loanStatus = 'returned' WHERE id = ? AND loanStatus = 'active' AND returnDate IS NULL");
     $stmt->execute([$loanId]);
-    $loan = $stmt->fetch();
 
-    if (!$loan) throw new Exception("Loan not found.");
-
-    // 2. Update the loan with today's date
-    $today = date('Y-m-d');
-    $updateLoan = $pdo->prepare("UPDATE loan SET returnDate = ? WHERE id = ?");
-    $updateLoan->execute([$today, $loanId]);
-
-    // 3. Set the book copy back to 'available'
-    $updateCopy = $pdo->prepare("UPDATE bookcopy SET status = 'available' WHERE id = ?");
-    $updateCopy->execute([$loan['bookCopyId']]);
-
-    // 4. Fine Calculation
-    //     $dueDate = strtotime($loan['dueDate']);
-    $returnDate = strtotime($today);
-
-    if ($returnDate > $dueDate) {
-        $daysLate = floor(($returnDate - $dueDate) / (60 * 60 * 24));
-        $fineAmount = $daysLate * 0.50;
-
-        $insertFine = $pdo->prepare("INSERT INTO fine (loanId, amount, status) VALUES (?, ?, 'unpaid')");
-        $insertFine->execute([$loanId, $fineAmount]);
-        $msg = "Book returned. Late fee of $$fineAmount applied.";
-    } else {
-        $msg = "Book returned successfully. No fines.";
+    if ($stmt->rowCount() === 0) {
+        throw new Exception("Loan not found or not eligible for return.");
     }
 
-    $pdo->commit();
-    header("Location: ../../frontend/manageLoans.php?msg=" . urlencode($msg));
+    header("Location: ../../frontend/manageLoans.php?msg=" . urlencode("Book return processed successfully."));
     exit;
 
 } catch (Exception $e) {
-    $pdo->rollBack();
-    echo "Error processing return: " . $e->getMessage();
+    header("Location: ../../frontend/manageLoans.php?msg=" . urlencode("Error: " . $e->getMessage()));
+    exit;
 }

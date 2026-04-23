@@ -334,9 +334,27 @@ END IF
 $$
 DELIMITER ;
 DELIMITER $$
-CREATE TRIGGER `updateStatus` AFTER INSERT ON `loan` FOR EACH ROW UPDATE bookcopy
-SET status = 'checked_out'
-WHERE id = NEW.bookCopyId
+CREATE TRIGGER `updateStatus` AFTER INSERT ON `loan` FOR EACH ROW BEGIN
+    IF NEW.loanStatus = 'pending' THEN
+        UPDATE bookcopy
+        SET status = 'on_hold'
+        WHERE id = NEW.bookCopyId;
+    ELSEIF NEW.loanStatus = 'active' THEN
+        UPDATE bookcopy
+        SET status = 'checked_out'
+        WHERE id = NEW.bookCopyId;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `onLoanProcessed` AFTER UPDATE ON `loan` FOR EACH ROW BEGIN
+    IF OLD.loanStatus = 'pending' AND NEW.loanStatus = 'active' THEN
+        UPDATE bookcopy
+        SET status = 'checked_out'
+        WHERE id = NEW.bookCopyId;
+    END IF;
+END
 $$
 DELIMITER ;
 

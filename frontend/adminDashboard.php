@@ -3,6 +3,10 @@ session_start();
 require_once "../backend/config/config.php";
 require_once "../backend/databaseHelper.php";
 
+header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 // Security Check: Only allow Librarians
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
     header("Location: login.php");
@@ -10,6 +14,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
 }
 
 $staffName = $_SESSION['name'];
+$pendingLoans = getPendingLoans($pdo);
+$activeLoans = getActiveLoans($pdo);
+$unpaidFines = getAllUnpaidFines($pdo);
 ?>
 
 <!DOCTYPE html>
@@ -21,10 +28,10 @@ $staffName = $_SESSION['name'];
         body { 
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
             margin: 0; 
-            background: #f4f7f6; 
+            background: #f5f3ff; 
         }
         nav { 
-            background: #333; 
+            background: #4c1d95; 
             color: #fff; 
             padding: 1rem; 
             display: flex; 
@@ -54,7 +61,7 @@ $staffName = $_SESSION['name'];
         }
         .btn { 
             display: inline-block; 
-            background: #007bff; 
+            background: #7c3aed; 
             color: white; 
             padding: 10px 20px; 
             text-decoration: none; 
@@ -62,17 +69,17 @@ $staffName = $_SESSION['name'];
             margin-top: 15px; 
         }
         .btn:hover {
-            background: #0056b3;
+            background: #6d28d9;
         }
         .welcome-header { 
             margin-bottom: 30px; 
         }
         .alert-success {
-            background-color: #d4edda; 
-            color: #155724; 
+            background-color: #ede9fe; 
+            color: #4c1d95; 
             padding: 15px; 
             margin-bottom: 20px; 
-            border: 1px solid #c3e6cb; 
+            border: 1px solid #c4b5fd; 
             border-radius: 5px; 
             text-align: center;
         }
@@ -82,13 +89,13 @@ $staffName = $_SESSION['name'];
 
     <nav>
         <span><strong>Library Admin</strong> | <?php echo htmlspecialchars($staffName); ?></span>
-        <a href="../backend/logout.php" style="color: #ff4d4d; text-decoration: none;">Logout</a>
+        <a href="../backend/logout.php" style="color: #f5d0fe; text-decoration: none;">Logout</a>
     </nav>
 
     <div class="container">
         <div class="welcome-header">
             <h1>Administrative Dashboard</h1>
-            <p>Select a management tool below to begin.</p>
+            <p>Manage pending loans, active checkouts, returns, fines, and inventory.</p>
         </div>
 
         <?php if (isset($_GET['msg'])): ?>
@@ -109,19 +116,84 @@ $staffName = $_SESSION['name'];
             <div class="card">
                 <div>
                     <h3>Catalog New Titles</h3>
-                    <p>Register a brand new book title and its first copy into the system.</p>
+                    <p>Register a new title in the catalog.</p>
                 </div>
                 <a href="addBookForm.php" class="btn">Add New Book</a>
             </div>
 
             <div class="card">
                 <div>
-                    <h3>Loans & Returns</h3>
-                    <p>Process student returns and check the status of active loans.</p>
+                    <h3>Process Returns</h3>
+                    <p>View active loans and mark check-ins.</p>
                 </div>
-                <a href="manageLoans.php" class="btn">View All Loans</a>
+                <a href="manageLoans.php" class="btn">Open Returns</a>
             </div>
         </div>
+
+        <h2 style="margin-top: 30px;">Pending Loans (Pickup Queue)</h2>
+        <table style="width:100%; border-collapse: collapse; background: #fff;">
+            <tr>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Loan ID</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Student</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Book</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Requested</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Action</th>
+            </tr>
+            <?php foreach ($pendingLoans as $loan): ?>
+                <tr>
+                    <td style="padding: 10px; border:1px solid #ddd;">#<?php echo (int)$loan['id']; ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['studentName']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['bookTitle']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['borrowDate']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;">
+                        <a class="btn" href="../backend/admin/processLoan.php?id=<?php echo (int)$loan['id']; ?>">Process Loan</a>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+
+        <h2 style="margin-top: 30px;">Active Loans</h2>
+        <table style="width:100%; border-collapse: collapse; background: #fff;">
+            <tr>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Loan ID</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Student</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Book</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Due Date</th>
+            </tr>
+            <?php foreach ($activeLoans as $loan): ?>
+                <tr>
+                    <td style="padding: 10px; border:1px solid #ddd;">#<?php echo (int)$loan['id']; ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['studentName']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['bookTitle']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($loan['dueDate']); ?></td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
+
+        <h2 style="margin-top: 30px;">All Unpaid Fines</h2>
+        <table style="width:100%; border-collapse: collapse; background: #fff;">
+            <tr>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Fine ID</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Student</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Book</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Amount</th>
+                <th style="padding: 10px; border:1px solid #ddd; background:#ede9fe; color:#3b0764;">Action</th>
+            </tr>
+            <?php foreach ($unpaidFines as $fine): ?>
+                <tr>
+                    <td style="padding: 10px; border:1px solid #ddd;">#<?php echo (int)$fine['fineId']; ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($fine['studentName']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;"><?php echo htmlspecialchars($fine['bookTitle']); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;">$<?php echo number_format((float)$fine['amount'], 2); ?></td>
+                    <td style="padding: 10px; border:1px solid #ddd;">
+                        <form action="../backend/admin/markFinePaid.php" method="POST" style="margin:0;">
+                            <input type="hidden" name="fineId" value="<?php echo (int)$fine['fineId']; ?>">
+                            <button class="btn" type="submit" style="margin-top:0;">Mark Paid</button>
+                        </form>
+                    </td>
+                </tr>
+            <?php endforeach; ?>
+        </table>
     </div>
 
 </body>

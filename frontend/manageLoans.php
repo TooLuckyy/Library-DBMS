@@ -7,7 +7,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'librarian') {
     exit;
 }
 
-// Fetch all active loans (where returnDate is NULL)
+// Fetch all active loans ready for return processing.
 $sql = "SELECT 
             l.id AS loan_id, 
             s.name AS student_name, 
@@ -18,7 +18,7 @@ $sql = "SELECT
         JOIN student s ON l.studentId = s.studentId
         JOIN bookcopy bc ON l.bookCopyId = bc.id
         JOIN book b ON bc.bookID = b.id
-        WHERE l.returnDate IS NULL
+        WHERE l.loanStatus = 'active' AND l.returnDate IS NULL
         ORDER BY l.dueDate ASC";
 
 $loans = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
@@ -30,20 +30,21 @@ $loans = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     <meta charset="UTF-8">
     <title>Manage Active Loans</title>
     <style>
-        body { font-family: sans-serif; background: #f4f7f6; padding: 20px; }
+        body { font-family: sans-serif; background: #f5f3ff; padding: 20px; }
         table { width: 100%; border-collapse: collapse; background: white; }
         th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
-        th { background: #007bff; color: white; }
+        th { background: #6d28d9; color: white; }
         .overdue { color: #dc3545; font-weight: bold; }
-        .btn-return { background: #28a745; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .btn-return { background: #7c3aed; color: white; padding: 5px 10px; text-decoration: none; border-radius: 3px; }
+        .btn-return:hover { background: #6d28d9; }
     </style>
 </head>
 <body>
-    <a href="adminDashboard.php">&larr; Back to Dashboard</a>
+    <a href="adminDashboard.php" style="color:#6d28d9; font-weight:bold;">&larr; Back to Dashboard</a>
     <h2>Active Loans</h2>
 
     <?php if (isset($_GET['msg'])): ?>
-        <p style="color: green; font-weight: bold;"><?= htmlspecialchars($_GET['msg']) ?></p>
+        <p style="color: #4c1d95; font-weight: bold;"><?= htmlspecialchars($_GET['msg']) ?></p>
     <?php endif; ?>
 
     <table>
